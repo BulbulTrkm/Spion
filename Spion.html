@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Spion Spiel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-color: #f2f2f2;
+      --text-color: #000;
+      --button-bg: #333;
+      --button-text: #fff;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --button-bg: #444;
+      --button-text: #fff;
+    }
+
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2em;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+    }
+
+    .hidden { display: none; }
+
+    button {
+      padding: 1em 2em;
+      font-size: 1em;
+      margin-top: 1em;
+      border-radius: 8px;
+      border: none;
+      background: var(--button-bg);
+      color: var(--button-text);
+      cursor: pointer;
+    }
+
+    input, select {
+      padding: 0.5em;
+      font-size: 1em;
+      margin: 0.5em;
+    }
+
+    .top-controls {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+    }
+
+    .top-controls button {
+      margin-left: 0.5em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-controls">
+    <button onclick="toggleDarkMode()">🌙</button>
+    <button onclick="enterFullscreen()">⛶</button>
+  </div>
+
+  <h1>🕵️ Spion Spiel</h1>
+
+  <div id="setup">
+    <input type="number" id="playerCount" placeholder="Anzahl Spieler" min="3">
+    <input type="number" id="spyCount" placeholder="Anzahl Spione" min="1">
+    <br>
+    <select id="categorySelect">
+      <option value="Zufall">🎲 Zufällig</option>
+      <option value="Geografie">🏙️ Geo</option>
+      <option value="Geschichte">📦 Geschichte</option>
+      <option value="Anime">👔 Anime</option>
+      <option value="Filme und Serien">👔 Filme und Serien</option>
+      <option value="Bekannte Persönlichkeiten">👔 Persönlichkeiten</option>
+    </select>
+    <br>
+    <button onclick="startGame()">Spiel starten</button>
+  </div>
+
+  <div id="playerView" class="hidden">
+    <h2 id="playerLabel">Spieler X</h2>
+    <p id="wordDisplay">...</p>
+    <button onclick="nextPlayer()">Nächster Spieler</button>
+  </div>
+
+  <div id="transitionScreen" class="hidden">
+    <h2>🕵️ Übergabe</h2>
+    <p>Bitte übergebe das Gerät an Spieler <span id="nextPlayerNum"></span> und klicke auf "Weiter".</p>
+    <button onclick="showPlayerScreen()">Weiter</button>
+  </div>
+
+  <div id="gameEnd" class="hidden">
+    <h2>Alle haben ihr Wort gesehen.</h2>
+    <p>Diskutiert nun: Wer sind die Spione?</p>
+    <button onclick="revealSpion()">Spione anzeigen</button>
+    <p id="spionReveal" style="font-weight: bold;"></p>
+    <button onclick="newRound()">🔁 Neue Runde</button>
+  </div>
+
+  <script>
+    const wordCategories = {
+      "Geografie": [
+  "Äquator", "Kontinent", "Insel", "Gebirge", "Tal", "Wüste", "See", "Fluss",
+  "Halbinsel", "Küste", "Archipel", "Gletscher", "Krater", "Vulkan", "Wolkenkratzer",
+  "Wald", "Steppe", "Dschungel", "Kanal", "Ebene", "Ozean", "Mittelmeer", "Pazifik",
+  "Alpen", "Sahara", "Nil", "Amazonas", "Donau", "Himalaya", "Rocky Mountains",
+  "Anden", "Nordpol", "Südpol", "Ägäis", "Balkan", "Skandinavien", "Sibirien", "Kaukasus",
+  "Grand Canyon", "Kap der Guten Hoffnung", "Panamakanal", "Everest", "Marianengraben",
+  "Tundra", "Savanne", "Regenwald", "Plateau", "Atoll", "Mündung", "Hochebene"
+],
+        "Geschichte": [
+  "Römisches Reich", "Mittelalter", "Renaissance", "Französische Revolution",
+  "Weltkrieg", "Kalter Krieg", "Berliner Mauer", "Pyramiden", "Kreuzzug", "Kaiser",
+  "Adel", "Imperium", "Pharao", "Republik", "Demokratie", "Monarchie", "Sklaverei",
+  "Vikinger", "Sparta", "Troja", "Alexander der Große", "Cäsar", "Napoleon", "Hitler",
+  "Churchill", "DDR", "NS-Zeit", "Weimarer Republik", "Industrialisierung", "Kolonialismus",
+  "Entdeckung Amerikas", "D-Day", "Mauerfall", "Wikinger", "Gladiator", "Hiroshima",
+  "Revolution", "Gulag", "Inquisition", "Schlacht", "Erster Weltkrieg", "Zweiter Weltkrieg",
+  "Martin Luther", "Bismarck", "Stalin", "Lincoln", "Versailles", "Vietnamkrieg",
+  "Atlantis", "Papst"
+],
+        "Anime": [
+  "Naruto", "Sasuke", "Konoha", "Akatsuki", "Sharingan", "Bleach", "Ichigo", "Soul Reaper",
+  "One Piece", "Luffy", "Zorro", "Nami", "Grand Line", "Dragon Ball", "Goku", "Vegeta",
+  "Kamehameha", "Attack on Titan", "Eren", "Mikasa", "Titan", "Death Note", "Light",
+  "L", "Notebook", "My Hero Academia", "Deku", "Bakugo", "All Might", "Quirk",
+  "Demon Slayer", "Tanjiro", "Nezuko", "Hashira", "Inosuke", "Zenitsu", "Sword Art Online",
+  "Kirito", "Asuna", "Fairy Tail", "Natsu", "Erza", "Lucy", "Pokémon", "Pikachu", "Ash",
+  "Pokéball", "Jujutsu Kaisen", "Gojo", "Itadori", "Nanami", "Hunter x Hunter", "Gon",
+  "Killua", "Hisoka", "Fullmetal Alchemist", "Edward", "Alphonse", "Alchemy",
+  "Black Clover", "Asta", "Yuno", "Magic Knight", "Tokyo Ghoul", "Kaneki", "RC-Zelle",
+  "Berserk", "Guts", "Griffith", "Chainsaw Man", "Denji", "Makima", "Power", "Mob Psycho",
+  "Mob", "Reigen", "Spy x Family", "Loid", "Anya", "Yor", "Code Geass", "Lelouch", "C.C.",
+  "Evangelion", "Shinji", "Asuka", "Rei", "Haikyuu", "Hinata", "Kageyama", "Karasuno",
+  "Your Name", "Silent Voice", "Howl’s Moving Castle", "Totoro", "Studio Ghibli"
+],
+        "Filme und Serien": [
+  "Breaking Bad", "Walter White", "Heisenberg", "Jesse Pinkman", "Game of Thrones", "Jon Snow",
+  "Daenerys", "Winterfell", "Stranger Things", "Eleven", "Demogorgon", "Hawkins", "The Office",
+  "Dwight", "Michael Scott", "Friends", "Ross", "Rachel", "Monica", "Chandler", "Harry Potter",
+  "Hogwarts", "Voldemort", "Dumbledore", "Hermione", "Ron", "Lord of the Rings", "Frodo",
+  "Gandalf", "Sauron", "Hobbit", "Avengers", "Iron Man", "Captain America", "Thanos", "Thor",
+  "Hulk", "Black Widow", "Loki", "Star Wars", "Luke Skywalker", "Darth Vader", "Yoda", "Leia",
+  "Obi-Wan", "Mandalorian", "Grogu", "Batman", "Joker", "Gotham", "Spider-Man", "Peter Parker",
+  "MJ", "Green Goblin", "Stranger Things", "Squid Game", "Red Light Green Light", "Money Heist",
+  "Professor", "Berlin", "Tokyo", "Narcos", "Pablo Escobar", "House of Cards", "Underwood",
+  "Sherlock", "Watson", "Dracula", "Lucifer", "Dexter", "Wednesday", "Wednesday Addams",
+  "The Crown", "Queen Elizabeth", "Peaky Blinders", "Tommy Shelby", "Dark", "Jonas", "Martha",
+  "Black Mirror", "Bandersnatch", "The Witcher", "Geralt", "Yennefer", "The Boys", "Homelander",
+  "Starlight", "Invincible", "Mark Grayson", "Omni-Man", "John Wick", "Matrix", "Neo", "Trinity",
+  "Inception", "Leonardo DiCaprio", "Titanic", "Jack", "Rose", "Shrek", "Donkey"
+],
+      "Bekannte Persönlichkeiten": [
+  "Albert Einstein", "Isaac Newton", "Galileo Galilei", "Marie Curie", "Stephen Hawking",
+  "Leonardo da Vinci", "Nikola Tesla", "Elon Musk", "Steve Jobs", "Bill Gates",
+  "Barack Obama", "Angela Merkel", "Winston Churchill", "Adolf Hitler", "Joseph Stalin",
+  "Nelson Mandela", "Martin Luther King", "Mahatma Gandhi", "Wladimir Putin", "Joe Biden",
+  "Donald Trump", "Karl Marx", "Che Guevara", "Napoleon Bonaparte", "Alexander der Große",
+  "Cleopatra", "Julius Caesar", "Queen Elizabeth II", "Prinz Harry", "Prinz William",
+  "Lady Diana", "Taylor Swift", "Michael Jackson", "Elvis Presley", "Freddie Mercury",
+  "Beyoncé", "Ariana Grande", "Drake", "Rihanna", "Ed Sheeran",
+  "Cristiano Ronaldo", "Lionel Messi", "Pelé", "Diego Maradona", "Serena Williams",
+  "Roger Federer", "Lewis Hamilton", "Usain Bolt", "Michael Schumacher", "Dirk Nowitzki",
+  "Tom Brady", "Tiger Woods", "Neymar", "Kylian Mbappé", "Mohamed Salah", "Zinedine Zidane",
+  "Tom Cruise", "Leonardo DiCaprio", "Brad Pitt", "Johnny Depp", "Keanu Reeves",
+  "Angelina Jolie", "Jennifer Lawrence", "Emma Watson", "Dwayne Johnson", "Chris Hemsworth",
+  "Robert Downey Jr.", "Scarlett Johansson", "Ryan Reynolds", "Will Smith", "Morgan Freeman",
+  "Oprah Winfrey", "Greta Thunberg", "Malala Yousafzai", "Anne Frank", "Florence Nightingale",
+  "Karl Lagerfeld", "Coco Chanel", "Walt Disney", "Stan Lee", "Hayao Miyazaki",
+  "Shakira", "Billie Eilish", "Mark Zuckerberg", "Jeff Bezos", "Pablo Picasso",
+  "Vincent van Gogh", "Mozart", "Beethoven", "Ludwig van Beethoven", "Wolfgang Amadeus Mozart",
+  "Frida Kahlo", "Banksy", "George Washington", "Abraham Lincoln", "John F. Kennedy",
+  "Kim Kardashian", "Kanye West", "Justin Bieber", "Harry Styles", "Zendaya"
+],
+
+
+    };
+
+    let playerCount = 0;
+    let spyCount = 0;
+    let currentPlayer = 1;
+    let spies = [];
+    let secretWord = "";
+    let selectedCategory = "";
+    let savedCategory = "";
+    let savedSpies = [];
+
+    function startGame() {
+      playerCount = parseInt(document.getElementById("playerCount").value);
+      spyCount = parseInt(document.getElementById("spyCount").value);
+      const categoryChoice = document.getElementById("categorySelect").value;
+
+      if (playerCount < 3 || spyCount < 1 || spyCount >= playerCount) {
+        alert("Bitte gültige Spieler- und Spionanzahl eingeben.");
+        return;
+      }
+
+      const categoryKeys = Object.keys(wordCategories);
+      selectedCategory = (categoryChoice === "Zufall") ?
+        categoryKeys[Math.floor(Math.random() * categoryKeys.length)] : categoryChoice;
+      savedCategory = selectedCategory;
+
+      const words = wordCategories[selectedCategory];
+      secretWord = words[Math.floor(Math.random() * words.length)];
+
+      const allPlayers = Array.from({ length: playerCount }, (_, i) => i + 1);
+      spies = [];
+      while (spies.length < spyCount) {
+        const index = Math.floor(Math.random() * allPlayers.length);
+        spies.push(allPlayers.splice(index, 1)[0]);
+      }
+      savedSpies = spies.slice();
+
+      currentPlayer = 1;
+      document.getElementById("setup").classList.add("hidden");
+      document.getElementById("playerView").classList.remove("hidden");
+      showPlayer();
+    }
+
+    function showPlayer() {
+      document.getElementById("playerLabel").innerText = "Spieler " + currentPlayer;
+      if (spies.includes(currentPlayer)) {
+        document.getElementById("wordDisplay").innerText =
+          "Kategorie: " + selectedCategory + " — Du bist ein Spion!";
+      } else {
+        document.getElementById("wordDisplay").innerText =
+          "Kategorie: " + selectedCategory + " — Wort: " + secretWord;
+      }
+    }
+
+    function nextPlayer() {
+      currentPlayer++;
+      if (currentPlayer > playerCount) {
+        document.getElementById("playerView").classList.add("hidden");
+        document.getElementById("gameEnd").classList.remove("hidden");
+      } else {
+        document.getElementById("playerView").classList.add("hidden");
+        document.getElementById("nextPlayerNum").innerText = currentPlayer;
+        document.getElementById("transitionScreen").classList.remove("hidden");
+      }
+    }
+
+    function showPlayerScreen() {
+      document.getElementById("transitionScreen").classList.add("hidden");
+      document.getElementById("playerView").classList.remove("hidden");
+      showPlayer();
+    }
+
+    function revealSpion() {
+      document.getElementById("spionReveal").innerText =
+        "🕵️ Die Spione waren: Spieler " + spies.join(", ");
+    }
+
+    function newRound() {
+      const words = wordCategories[savedCategory];
+      secretWord = words[Math.floor(Math.random() * words.length)];
+      spies = savedSpies.slice();
+      currentPlayer = 1;
+
+      document.getElementById("gameEnd").classList.add("hidden");
+      document.getElementById("playerView").classList.remove("hidden");
+      showPlayer();
+    }
+
+    // 🌙 Darkmode
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    // ⛶ Fullscreen
+    function enterFullscreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+  </script>
+
+</body>
+</html>
