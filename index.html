@@ -108,10 +108,11 @@
     <button onclick="revealSpion()">Spione anzeigen</button>
     <p id="spionReveal" style="font-weight: bold;"></p>
     <button onclick="newRound()">🔁 Neue Runde</button>
+    <button onclick="resetToSetup()">🔧 Neue Spieler/Setup</button>
   </div>
 
   <script>
-	const wordCategories = {
+    const wordCategories = {
       "Geografie": [
   "Äquator", "Kontinent", "Insel", "Gebirge", "Tal", "Wüste", "See", "Fluss",
   "Halbinsel", "Küste", "Archipel", "Gletscher", "Krater", "Vulkan", "Wolkenkratzer",
@@ -214,7 +215,7 @@
   "Ukraine", "USA", "Kanada", "Mexiko", "Brasilien", "Argentinien", "Chile", "Kolumbien",
   "Peru", "China", "Japan", "Südkorea", "Indien", "Thailand", "Vietnam", "Australien",
   "Neuseeland", "Ägypten", "Südafrika", "Nigeria", "Marokko", "Tunesien", "Saudi-Arabien", "Iran",
-  "Irak", "Israel", "Indonesien", "Philippinen", "Malaysia", "Singapur", "Pakistan", "Bangladesch",
+  "Irak", "Indonesien", "Philippinen", "Malaysia", "Singapur", "Pakistan", "Bangladesch",
   "Kasachstan", "Island", "Serbien", "Rumänien", "Bulgarien", "Albanien", "Georgien", "Jordanien",
   "Berlin", "München", "Hamburg", "Köln", "Frankfurt", "Stuttgart", "Düsseldorf", "Leipzig",
   "Dresden", "Hannover", "Bremen", "Nürnberg", "Essen", "Dortmund", "Bonn", "Heidelberg",
@@ -224,8 +225,7 @@
     "Gaming": [
   "Mario", "Luigi", "Bowser", "Link", "Zelda", "Ganondorf", "Donkey Kong", "Pikachu", "Charizard", "Ash Ketchum",
   "Steve", "Alex", "Creeper", "Enderman", "Zombie", "Wither", "Diamantschwert", "Netherit", "Redstone", "Verzauberungstisch",
-  "Lara Croft", "Kratos", "Nathan Drake", "Geralt", "V (Cyberpunk)", "Ezio Auditore", "Altair", "Arthur Morgan", "Trevor", "CJ",
-  "Sans", "Cuphead", "Freddy Fazbear", "Chica", "Springtrap", "Master Chief", "Samus Aran", "Mega Man", "Cloud Strife", "Sonic", "Shadow",
+  "Lara Croft", "Kratos", "Nathan Drake", "V (Cyberpunk)", "Trevor", "CJ", "Freddy Fazbear", "Chica", "Master Chief", "Cloud Strife", "Sonic", "Shadow",
   "PlayStation 5", "Xbox Series X", "Nintendo Switch", "Steam Deck", "PlayStation 4", "Xbox 360", "Game Boy", "Nintendo DS", "PSP", "Wii",
   "Fortnite", "Minecraft", "GTA", "Call of Duty", "FIFA", "League of Legends", "Valorant", "Rocket League", "Brawl Stars", "Clash Royale",
   "Super Mario", "The Legend of Zelda", "Animal Crossing", "Assassin’s Creed", "Overwatch", "Apex Legends", "Fall Guys", "Among Us",
@@ -239,7 +239,7 @@
 
 
 
-    };    
+    };   
 
     let playerCount = 0;
     let spyCount = 0;
@@ -255,6 +255,11 @@
     function generateNameInputs() {
       const count = parseInt(document.getElementById("playerCount").value);
       const container = document.getElementById("nameInputs");
+      const existingNames = [];
+      for (let i = 1; i <= playerNames.length; i++) {
+        const input = document.getElementById("playerName" + i);
+        if (input) existingNames.push(input.value);
+      }
       container.innerHTML = "";
 
       for (let i = 1; i <= count; i++) {
@@ -262,6 +267,7 @@
         input.type = "text";
         input.placeholder = "Name Spieler " + i;
         input.id = "playerName" + i;
+        input.value = existingNames[i - 1] || "";
         container.appendChild(input);
       }
     }
@@ -364,6 +370,11 @@
       document.getElementById("gameEnd").classList.add("hidden");
       document.getElementById("playerView").classList.remove("hidden");
       showPlayer();
+    }
+
+    function resetToSetup() {
+      document.getElementById("gameEnd").classList.add("hidden");
+      document.getElementById("setup").classList.remove("hidden");
     }
 
     function toggleDarkMode() {
