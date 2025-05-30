@@ -70,6 +70,9 @@
   <div id="setup">
     <input type="number" id="playerCount" placeholder="Anzahl Spieler" min="3" onchange="generateNameInputs()">
     <input type="number" id="spyCount" placeholder="Anzahl Spione" min="1">
+    <div>
+      <label><input type="checkbox" id="seeOtherSpies"> Spione sehen sich gegenseitig</label>
+    </div>
     <div id="nameInputs"></div>
     <br>
     <select id="categorySelect">
@@ -108,7 +111,7 @@
   </div>
 
   <script>
-	    const wordCategories = {
+	const wordCategories = {
       "Geografie": [
   "Äquator", "Kontinent", "Insel", "Gebirge", "Tal", "Wüste", "See", "Fluss",
   "Halbinsel", "Küste", "Archipel", "Gletscher", "Krater", "Vulkan", "Wolkenkratzer",
@@ -236,7 +239,7 @@
 
 
 
-    };
+    };    
 
     let playerCount = 0;
     let spyCount = 0;
@@ -247,6 +250,7 @@
     let savedCategory = "";
     let savedSpies = [];
     let playerNames = [];
+    let spionSehenSich = false;
 
     function generateNameInputs() {
       const count = parseInt(document.getElementById("playerCount").value);
@@ -266,6 +270,7 @@
       playerCount = parseInt(document.getElementById("playerCount").value);
       spyCount = parseInt(document.getElementById("spyCount").value);
       const categoryChoice = document.getElementById("categorySelect").value;
+      spionSehenSich = document.getElementById("seeOtherSpies").checked;
 
       if (playerCount < 3 || spyCount < 1 || spyCount >= playerCount) {
         alert("Bitte gültige Spieler- und Spionanzahl eingeben.");
@@ -306,10 +311,12 @@
     function showPlayer() {
       document.getElementById("playerLabel").innerText = playerNames[currentPlayer - 1];
       if (spies.includes(currentPlayer)) {
-        const otherSpies = spies.filter(n => n !== currentPlayer).map(n => playerNames[n - 1]);
         let message = "Kategorie: " + selectedCategory + " — Du bist ein Spion!";
-        if (otherSpies.length > 0) {
-          message += "\nWeitere Spione: " + otherSpies.join(", ");
+        if (spionSehenSich) {
+          const otherSpies = spies.filter(n => n !== currentPlayer).map(n => playerNames[n - 1]);
+          if (otherSpies.length > 0) {
+            message += "\nWeitere Spione: " + otherSpies.join(", ");
+          }
         }
         document.getElementById("wordDisplay").innerText = message;
       } else {
