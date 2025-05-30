@@ -68,8 +68,9 @@
   <h1>🕵️ Spion Spiel</h1>
 
   <div id="setup">
-    <input type="number" id="playerCount" placeholder="Anzahl Spieler" min="3">
+    <input type="number" id="playerCount" placeholder="Anzahl Spieler" min="3" onchange="generateNameInputs()">
     <input type="number" id="spyCount" placeholder="Anzahl Spione" min="1">
+    <div id="nameInputs"></div>
     <br>
     <select id="categorySelect">
       <option value="Zufall">🎲 Zufällig</option>
@@ -94,7 +95,7 @@
 
   <div id="transitionScreen" class="hidden">
     <h2>🕵️ Übergabe</h2>
-    <p>Bitte übergebe das Gerät an Spieler <span id="nextPlayerNum"></span> und klicke auf "Weiter".</p>
+    <p>Bitte übergebe das Gerät an <span id="nextPlayerNum"></span> und klicke auf "Weiter".</p>
     <button onclick="showPlayerScreen()">Weiter</button>
   </div>
 
@@ -107,7 +108,7 @@
   </div>
 
   <script>
-    const wordCategories = {
+	    const wordCategories = {
       "Geografie": [
   "Äquator", "Kontinent", "Insel", "Gebirge", "Tal", "Wüste", "See", "Fluss",
   "Halbinsel", "Küste", "Archipel", "Gletscher", "Krater", "Vulkan", "Wolkenkratzer",
@@ -245,6 +246,21 @@
     let selectedCategory = "";
     let savedCategory = "";
     let savedSpies = [];
+    let playerNames = [];
+
+    function generateNameInputs() {
+      const count = parseInt(document.getElementById("playerCount").value);
+      const container = document.getElementById("nameInputs");
+      container.innerHTML = "";
+
+      for (let i = 1; i <= count; i++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Name Spieler " + i;
+        input.id = "playerName" + i;
+        container.appendChild(input);
+      }
+    }
 
     function startGame() {
       playerCount = parseInt(document.getElementById("playerCount").value);
@@ -256,9 +272,18 @@
         return;
       }
 
+      playerNames = [];
+      for (let i = 1; i <= playerCount; i++) {
+        const name = document.getElementById("playerName" + i).value.trim();
+        if (!name) {
+          alert("Bitte Namen für alle Spieler eingeben.");
+          return;
+        }
+        playerNames.push(name);
+      }
+
       const categoryKeys = Object.keys(wordCategories);
-      selectedCategory = (categoryChoice === "Zufall") ?
-        categoryKeys[Math.floor(Math.random() * categoryKeys.length)] : categoryChoice;
+      selectedCategory = (categoryChoice === "Zufall") ? categoryKeys[Math.floor(Math.random() * categoryKeys.length)] : categoryChoice;
       savedCategory = selectedCategory;
 
       const words = wordCategories[selectedCategory];
@@ -279,13 +304,16 @@
     }
 
     function showPlayer() {
-      document.getElementById("playerLabel").innerText = "Spieler " + currentPlayer;
+      document.getElementById("playerLabel").innerText = playerNames[currentPlayer - 1];
       if (spies.includes(currentPlayer)) {
-        document.getElementById("wordDisplay").innerText =
-          "Kategorie: " + selectedCategory + " — Du bist ein Spion!";
+        const otherSpies = spies.filter(n => n !== currentPlayer).map(n => playerNames[n - 1]);
+        let message = "Kategorie: " + selectedCategory + " — Du bist ein Spion!";
+        if (otherSpies.length > 0) {
+          message += "\nWeitere Spione: " + otherSpies.join(", ");
+        }
+        document.getElementById("wordDisplay").innerText = message;
       } else {
-        document.getElementById("wordDisplay").innerText =
-          "Kategorie: " + selectedCategory + " — Wort: " + secretWord;
+        document.getElementById("wordDisplay").innerText = "Kategorie: " + selectedCategory + " — Wort: " + secretWord;
       }
     }
 
@@ -296,7 +324,7 @@
         document.getElementById("gameEnd").classList.remove("hidden");
       } else {
         document.getElementById("playerView").classList.add("hidden");
-        document.getElementById("nextPlayerNum").innerText = currentPlayer;
+        document.getElementById("nextPlayerNum").innerText = playerNames[currentPlayer - 1];
         document.getElementById("transitionScreen").classList.remove("hidden");
       }
     }
@@ -308,14 +336,22 @@
     }
 
     function revealSpion() {
-      document.getElementById("spionReveal").innerText =
-        "🕵️ Die Spione waren: Spieler " + spies.join(", ");
+      const spionNamen = spies.map(num => playerNames[num - 1]);
+      document.getElementById("spionReveal").innerText = "🕵️ Die Spione waren: " + spionNamen.join(", ");
     }
 
     function newRound() {
       const words = wordCategories[savedCategory];
       secretWord = words[Math.floor(Math.random() * words.length)];
-      spies = savedSpies.slice();
+
+      const allPlayers = Array.from({ length: playerCount }, (_, i) => i + 1);
+      spies = [];
+      while (spies.length < spyCount) {
+        const index = Math.floor(Math.random() * allPlayers.length);
+        spies.push(allPlayers.splice(index, 1)[0]);
+      }
+      savedSpies = spies.slice();
+
       currentPlayer = 1;
 
       document.getElementById("gameEnd").classList.add("hidden");
@@ -323,12 +359,10 @@
       showPlayer();
     }
 
-    // 🌙 Darkmode
     function toggleDarkMode() {
       document.body.classList.toggle("dark");
     }
 
-    // ⛶ Fullscreen
     function enterFullscreen() {
       const elem = document.documentElement;
       if (elem.requestFullscreen) {
@@ -340,6 +374,5 @@
       }
     }
   </script>
-
 </body>
 </html>
